@@ -20,6 +20,9 @@ public class UserRegisterRequest {
     String firstName;
     @JsonProperty("last_name")
     String lastName;
+
+    @NotBlank(message = "username must not be blank")
+    String username;
     @NotBlank(message = "email must not be blank")
     @Email(message = "Email is not valid", regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
     String email;

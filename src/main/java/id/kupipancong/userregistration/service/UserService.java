@@ -30,20 +30,22 @@ public class UserService {
     public void userRegister(UserRegisterRequest request){
         validationService.validate(request);
 
-        if (!userRepository.existsByEmail(request.getEmail())){
-            if (!request.getPassword().equals(request.getPasswordConfirmation())){
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password do not match");
-            }
-            User user = new User();
-            user.setFirstName(request.getFirstName());
-            user.setLastName(request.getLastName());
-            user.setUserType(UserType.User);
-            user.setEmail(request.getEmail());
-            user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
-            userRepository.save(user);
-        }else {
+        if (userRepository.existsByEmail(request.getEmail())){
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already taken.");
         }
+
+        if (userRepository.existsByUsername(request.getUsername())){
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken.");
+        }
+
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setUsername(request.getUsername());
+        user.setUserType(UserType.User);
+        user.setEmail(request.getEmail());
+        user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
+        userRepository.save(user);
     }
 
 

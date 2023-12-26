@@ -23,6 +23,9 @@ public class User {
     private String lastName;
     @Column(unique = true)
     private String email;
+
+    @Column(unique = true)
+    private String username;
     private String password;
     @Enumerated(EnumType.STRING)
     private UserType userType;
@@ -30,6 +33,8 @@ public class User {
     private String accessToken;
     @Column(unique = true)
     private String refreshToken;
+    @Column(columnDefinition = "timestamp")
+    private LocalDateTime emailVerifiedAt;
     @CreationTimestamp
     @Column(columnDefinition = "timestamp")
     private LocalDateTime createdAt;
