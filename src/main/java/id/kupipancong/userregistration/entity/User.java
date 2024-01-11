@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.Length;
 
 import java.time.LocalDateTime;
 
@@ -27,6 +28,8 @@ public class User {
     @Column(unique = true)
     private String username;
     private String password;
+
+    private String referral;
     @Enumerated(EnumType.STRING)
     private UserType userType;
     @Column(unique = true)

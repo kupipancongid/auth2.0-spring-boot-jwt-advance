@@ -1,0 +1,260 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User Registration",
+    "description": "The backend application efficiently manages user-related tasks, including seamless registration, secure email verification, and login using JWT for enhanced authentication.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "kupipancongid",
+      "email": "idkupipancong@gmail.com"
+    },
+    "license": {
+      "name": "APACHE 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://{env}.youthaugmenter.com",
+      "description": "user registration server",
+      "variables": {
+        "env" : {
+          "default": "register-dev",
+          "enum": [
+            "register-dev",
+            "register-qa",
+            "register"
+          ]
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/users" : {
+      "post" : {
+        "summary": "submit registration form",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json" : {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_name" : {
+                    "type": "string",
+                    "required": true
+                  },
+                  "last_name" : {
+                    "type": "string",
+                    "required": true
+                  },
+                  "username" : {
+                    "type": "string",
+                    "required": true,
+                    "minLength": 5,
+                    "maxLength": 32
+                  },
+                  "email" : {
+                    "type": "string",
+                    "required": true
+                  },
+                  "password" : {
+                    "type": "string",
+                    "required": true,
+                    "minLength": 6,
+                    "maxLength": 32
+                  },
+                  "password_confirmation" : {
+                    "type": "string",
+                    "required": true
+                  },
+                  "referral" : {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "registration success",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : "OK",
+                  "errors" : null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "registration failed because validation error",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "username: username must not be blank"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "registration failed because of email or username already registered",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Email is already taken."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth" : {
+      "post" : {
+        "summary": "submit login form",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json" : {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email" : {
+                    "type": "string",
+                    "required": true,
+                    "minLength": 5,
+                    "maxLength": 32
+                  },
+                  "password" : {
+                    "type": "string",
+                    "required": true,
+                    "minLength": 6,
+                    "maxLength": 32
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "verification-token",
+            "schema": {
+              "type": "string"
+            },
+            "description": "email verification token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "email verification success",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : "OK",
+                  "errors" : null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "email verification failed because bad request",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Required request parameter 'verification-token' for method parameter type String is not present"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "email verification failed because token not found",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Token not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

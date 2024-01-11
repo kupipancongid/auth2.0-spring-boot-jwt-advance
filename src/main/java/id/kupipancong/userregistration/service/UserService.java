@@ -70,6 +70,7 @@ public class UserService {
         user.setUserType(UserType.User);
         user.setEmail(request.getEmail());
         user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
+        user.setReferral(request.getReferral());
         userRepository.save(user);
 
         UserVerificationToken userVerificationToken = new UserVerificationToken();
@@ -81,15 +82,15 @@ public class UserService {
     @Transactional
     public void verifyUser(String token){
         UserVerificationToken userVerificationToken = userVerificationTokenRepository.findUserVerificationTokenByToken(token).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Token not found")
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token not found")
         );
 
         if (userVerificationToken.getTokenTakenAt() != null){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User verified");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User verified");
         }
 
         User user = userRepository.findById(userVerificationToken.getUser().getId()).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid Token")
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Token")
         );
 
         user.setEmailVerifiedAt(LocalDateTime.now());

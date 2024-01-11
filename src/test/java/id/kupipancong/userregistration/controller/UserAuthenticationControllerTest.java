@@ -260,7 +260,7 @@ class UserAuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
         ).andExpectAll(
-                status().isNotFound()
+                status().isUnauthorized()
         ).andDo(
                 result -> {
                     WebResponse<String> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<String>>() {
@@ -302,7 +302,7 @@ class UserAuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
         ).andExpectAll(
-                status().isNotFound()
+                status().isUnauthorized()
         ).andDo(
                 result -> {
                     WebResponse<String> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<String>>() {

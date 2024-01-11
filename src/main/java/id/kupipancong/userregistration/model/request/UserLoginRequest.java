@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 
 @Data
 @AllArgsConstructor
@@ -15,8 +16,9 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UserLoginRequest {
     @NotBlank(message = "username or email must not be blank")
+    @Size(min = 5, max = 32)
     String usernameOrEmail;
     @NotBlank(message = "password must not be blank")
-    @Size(max = 32)
+    @Size(min = 6, max = 32)
     String password;
 }

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 
 @Data
 @AllArgsConstructor
@@ -22,15 +23,18 @@ public class UserRegisterRequest {
     String lastName;
 
     @NotBlank(message = "username must not be blank")
+    @Length(min = 5)
     String username;
     @NotBlank(message = "email must not be blank")
     @Email(message = "Email is not valid", regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
     String email;
     @NotBlank(message = "password must not be blank")
-    @Size(max = 32)
+    @Size(min = 6,max = 32)
     String password;
     @NotBlank(message = "password confirmation must not be blank")
     @Size(max = 32)
     @JsonProperty("password_confirmation")
     String passwordConfirmation;
+
+    String referral;
 }
