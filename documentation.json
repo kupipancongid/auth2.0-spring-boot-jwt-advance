@@ -15,6 +15,10 @@
   },
   "servers": [
     {
+      "url": "http://localhost:8080",
+      "description": "local development"
+    },
+    {
       "url": "https://{env}.youthaugmenter.com",
       "description": "user registration server",
       "variables": {
@@ -32,6 +36,7 @@
   "paths": {
     "/users" : {
       "post" : {
+        "tags": ["user-registration"],
         "summary": "submit registration form",
         "requestBody": {
           "required": true,
@@ -149,6 +154,7 @@
     },
     "/auth" : {
       "post" : {
+        "tags": ["user-login"],
         "summary": "submit login form",
         "requestBody": {
           "required": true,
@@ -173,9 +179,68 @@
               }
             }
           }
+        },
+        "responses": {
+          "200" : {
+            "description": "login success",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "object",
+                      "properties": {
+                        "access_token" : {
+                          "type": "string"
+                        },
+                        "refresh_token" : {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : {
+                    "access_token" : "xxx",
+                    "refresh_token" : "yyy"
+                  },
+                  "errors" : null
+                }
+              }
+            }
+          },
+          "401" : {
+            "description": "login failed",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Unauthorized"
+                }
+              }
+            }
+          }
         }
       },
       "get" : {
+        "tags": ["user-registration"],
+        "summary": "email verification",
         "parameters": [
           {
             "in": "query",
@@ -252,6 +317,156 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete" : {
+        "security": [{
+          "appsAuth" : []
+        }],
+        "tags": ["logout"],
+        "summary": "user logout",
+        "responses": {
+          "200" : {
+            "description": "logout success",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string",
+                      "properties": {
+                        "data" : {
+                          "type" : "string"
+                        },
+                        "errors" : {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : "OK",
+                  "errors" : null
+                }
+              }
+            }
+          },
+          "401" : {
+            "description": "logout failed",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/current" : {
+      "get" : {
+        "security": [{
+          "appsAuth" : []
+        }],
+        "tags": ["user-profile"],
+        "summary": "submit login form",
+        "responses": {
+          "200": {
+            "description": "current user data",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "$ref": "#/components/schemas/user"
+                },
+                "example": {
+                  "data" : {
+                    "id" : "xxx",
+                    "first_name" : "kupipancongid",
+                    "last_name" : "kupipancongid",
+                    "username" : "kupipancongid",
+                    "email" : "idkupipancong@gmail.com",
+                    "user_type" : "user"
+                  },
+                  "errors" : null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorize",
+            "content": {
+              "application/json" : {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data" : {
+                      "type" : "string"
+                    },
+                    "errors" : {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "data" : null,
+                  "errors" : "Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes" : {
+      "appsAuth" : {
+        "description": "Auth with access token in header",
+        "type" : "apiKey",
+        "in" : "header",
+        "name" : "X-API-ACCESS-TOKEN"
+      }
+    },
+    "schemas": {
+      "user" : {
+        "type": "object",
+        "properties": {
+          "id" : {
+            "type": "string"
+          },
+          "first_name" : {
+            "type": "string"
+          },
+          "last_name" : {
+            "type": "string"
+          },
+          "usernaname" : {
+            "type": "string"
+          },
+          "email" : {
+            "type": "string"
+          },
+          "user_type" : {
+            "type": "string"
           }
         }
       }
