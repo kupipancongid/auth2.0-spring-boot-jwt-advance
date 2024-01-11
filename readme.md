@@ -91,6 +91,23 @@ Response Body (Failed) :
 }
 ```
 
+Response Body (Failed) :
+
+```json
+{
+  "data": null,
+  "errors" : "User verified"
+}
+```
+Response Body (Failed) :
+
+```json
+{
+  "data": null,
+  "errors" : "Token not found"
+}
+```
+
 ## Login
 
 ### Login User

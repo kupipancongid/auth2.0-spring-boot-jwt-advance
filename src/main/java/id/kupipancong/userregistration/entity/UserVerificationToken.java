@@ -1,6 +1,5 @@
 package id.kupipancong.userregistration.entity;
 
-import id.kupipancong.userregistration.enums.UserType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,31 +13,26 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "user_verification_tokens")
+public class UserVerificationToken {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private String firstName;
-    private String lastName;
-    @Column(unique = true)
-    private String email;
 
     @Column(unique = true)
-    private String username;
-    private String password;
-    @Enumerated(EnumType.STRING)
-    private UserType userType;
-    @Column(unique = true)
-    private String accessToken;
-    @Column(unique = true)
-    private String refreshToken;
+    private String token;
+
     @Column(columnDefinition = "timestamp")
-    private LocalDateTime emailVerifiedAt;
+    private LocalDateTime tokenTakenAt;
+
     @CreationTimestamp
     @Column(columnDefinition = "timestamp")
     private LocalDateTime createdAt;
     @UpdateTimestamp
     @Column(columnDefinition = "timestamp")
     private LocalDateTime updatedAt;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
 }

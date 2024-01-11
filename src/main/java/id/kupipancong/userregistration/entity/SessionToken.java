@@ -1,6 +1,5 @@
 package id.kupipancong.userregistration.entity;
 
-import id.kupipancong.userregistration.enums.UserType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,31 +13,28 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "session_tokens")
+public class SessionToken {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(unique = true, columnDefinition = "char(36)", updatable = false)
     private String id;
-    private String firstName;
-    private String lastName;
-    @Column(unique = true)
-    private String email;
-
-    @Column(unique = true)
-    private String username;
-    private String password;
-    @Enumerated(EnumType.STRING)
-    private UserType userType;
-    @Column(unique = true)
+    @Column(nullable = false)
     private String accessToken;
-    @Column(unique = true)
+    @Column(nullable = false)
     private String refreshToken;
-    @Column(columnDefinition = "timestamp")
-    private LocalDateTime emailVerifiedAt;
+    private String localAddress;
+    private String remoteAddress;
+    private Boolean refreshTokenUsed;
     @CreationTimestamp
     @Column(columnDefinition = "timestamp")
     private LocalDateTime createdAt;
     @UpdateTimestamp
     @Column(columnDefinition = "timestamp")
     private LocalDateTime updatedAt;
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+    @ManyToOne
+    @JoinColumn(name = "session_id", referencedColumnName = "id")
+    private Session session;
 }
