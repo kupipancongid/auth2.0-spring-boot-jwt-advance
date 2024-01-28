@@ -9,15 +9,15 @@ import id.kupipancong.userregistration.format.JwtToken;
 import id.kupipancong.userregistration.model.request.UserLoginRequest;
 import id.kupipancong.userregistration.model.request.UserRegisterRequest;
 import id.kupipancong.userregistration.model.response.TokenResponse;
+import id.kupipancong.userregistration.model.response.UserResponse;
 import id.kupipancong.userregistration.repository.SessionRepository;
 import id.kupipancong.userregistration.repository.SessionTokenRepository;
 import id.kupipancong.userregistration.repository.UserRepository;
 import id.kupipancong.userregistration.repository.UserVerificationTokenRepository;
 import id.kupipancong.userregistration.security.BCrypt;
 import id.kupipancong.userregistration.util.JwtUtil;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,23 +28,19 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class UserService {
     @Autowired
     UserRepository userRepository;
-
     @Autowired
     UserVerificationTokenRepository userVerificationTokenRepository;
-
     @Autowired
     SessionRepository sessionRepository;
-
     @Autowired
     SessionTokenRepository sessionTokenRepository;
-
     @Autowired
     JwtUtil jwtUtil;
-
     @Autowired
     ValidationService validationService;
 
@@ -63,6 +59,10 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken.");
         }
 
+        if (!request.getPassword().equals(request.getPasswordConfirmation())){
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Password doesnot match.");
+        }
+
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
@@ -71,11 +71,13 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
         user.setReferral(request.getReferral());
+
         userRepository.save(user);
 
         UserVerificationToken userVerificationToken = new UserVerificationToken();
         userVerificationToken.setToken(UUID.randomUUID().toString());
         userVerificationToken.setUser(user);
+
         userVerificationTokenRepository.save(userVerificationToken);
     }
 
@@ -94,42 +96,69 @@ public class UserService {
         );
 
         user.setEmailVerifiedAt(LocalDateTime.now());
+
         userRepository.save(user);
 
         userVerificationToken.setTokenTakenAt(LocalDateTime.now());
+
         userVerificationTokenRepository.save(userVerificationToken);
     }
 
     @Transactional
-    public TokenResponse login(UserLoginRequest request, HttpServletResponse response) {
+    public TokenResponse login(UserLoginRequest request) {
         validationService.validate(request);
-        removeCookie(response, "access_token");
-        removeCookie(response, "refresh_token");
 
-        User user = userRepository.findByEmailOrUsername(request.getUsernameOrEmail(), request.getUsernameOrEmail()).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login failed. wrong credentials."));
+        User user = userRepository.findByEmailOrUsername(request.getEmail(), request.getEmail()).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login failed. wrong credentials."));
 
         if (BCrypt.checkpw(request.getPassword(), user.getPassword())) {
             Session session = new Session();
             session.setUser(user);
             session.setLoggedOutAt(null);
+
             sessionRepository.save(session);
 
-            String sessionTokenHistoryId = UUID.randomUUID().toString();
+            String sessionTokenId = UUID.randomUUID().toString();
             Date accessTokenIssuedAt = new Date(System.currentTimeMillis());
             Date accessTokenExpiredAt = new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRED_TIMEMILIS);
             Date refreshTokenIssuedAt = accessTokenIssuedAt;
             Date refreshTokenExpiredAt = new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRED_TIMEMILIS);
-            SessionToken auth = generateSessionToken(sessionTokenHistoryId, session, user, accessTokenIssuedAt, accessTokenExpiredAt, refreshTokenIssuedAt, refreshTokenExpiredAt);
-
-            setCookie(response, "access_token", auth.getAccessToken(), 1000 * 60 * 60 * 1);
-            setCookie(response, "refresh_token", auth.getRefreshToken(), 1000 * 60 * 60 * 5);
+            SessionToken sessionToken = generateSessionToken(sessionTokenId, session, user, accessTokenIssuedAt, accessTokenExpiredAt, refreshTokenIssuedAt, refreshTokenExpiredAt);
 
             return TokenResponse.builder()
-                    .accessToken(auth.getAccessToken())
-                    .refreshToken(auth.getRefreshToken())
+                    .accessToken(sessionToken.getAccessToken())
+                    .refreshToken(sessionToken.getRefreshToken())
                     .build();
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login failed. wrong credentials.");
+        }
+    }
+
+    public User getUserByAccessToken(String accessToken){
+        try {
+            if (accessToken==null){
+                return null;
+            }
+
+            if(jwtUtil.isTokenExpired(accessToken)){
+                return null;
+            }
+
+            if (!jwtUtil.isTokenValid(accessToken)){
+                return null;
+            }
+
+            SessionToken sessionToken = sessionTokenRepository.findSessionTokenByAccessToken(accessToken).orElseThrow();
+            Session session = sessionRepository.findById(sessionToken.getSession().getId()).orElseThrow();
+            User user = userRepository.findById(session.getUser().getId()).orElseThrow();
+
+            if (session.getLoggedOutAt() != null){
+                return null;
+            }
+
+            return user;
+
+        }catch (Exception e){
+            return null;
         }
     }
 
@@ -145,6 +174,7 @@ public class UserService {
     ) {
         JwtToken jwtAccessToken = new JwtToken(session.getId(), authId, accessTokenIssuedAt, accessTokenExpiredAt);
         String accessToken = jwtUtil.generateTokenString(jwtAccessToken);
+
         JwtToken jwtRefreshToken = new JwtToken(session.getId(), authId, refreshTokenIssuedAt, refreshTokenExpiredAt);
         String refreshToken = jwtUtil.generateTokenString(jwtRefreshToken);
 
@@ -160,31 +190,39 @@ public class UserService {
         return sessionToken;
     }
 
-    private void setCookie(HttpServletResponse response, String key, String value, Integer maxAge) {
-        Cookie tokenCookie = new Cookie(key, value);
-        tokenCookie.setMaxAge(maxAge);
-        tokenCookie.setSecure(false);
-        tokenCookie.setHttpOnly(true);
-        tokenCookie.setPath("/");
-        response.addCookie(tokenCookie);
-    }
+    public void logout(HttpServletRequest request){
+        String accessToken = request.getHeader("X-API-ACCESS-TOKEN");
 
-    private void removeCookie(HttpServletResponse response, String key) {
-        Cookie tokenCookie = new Cookie(key, key);
-        tokenCookie.setMaxAge(0);
-        response.addCookie(tokenCookie);
-    }
+        User user = getUserByAccessToken(accessToken);
 
-    private String getCookieValue(HttpServletRequest request, String cookieName) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals(cookieName)) {
-                    return cookie.getValue();
-                }
-            }
+        if (user == null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }
-        return null;
+
+        SessionToken sessionToken = sessionTokenRepository.findSessionTokenByAccessToken(accessToken).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
+        );
+
+        sessionToken.setLoggedOut(true);
+        sessionTokenRepository.save(sessionToken);
+
+        Session session = sessionRepository.findById(sessionToken.getSession().getId()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
+        );
+
+        session.setLoggedOutAt(LocalDateTime.now());
+
+        sessionRepository.save(session);
     }
 
+    public UserResponse toUserResponse(User user){
+        return UserResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .userType(user.getUserType())
+                .emailVerifiedAt(user.getEmailVerifiedAt())
+                .build();
+    }
 }

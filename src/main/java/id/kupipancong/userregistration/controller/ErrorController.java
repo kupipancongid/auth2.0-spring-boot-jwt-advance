@@ -2,6 +2,7 @@ package id.kupipancong.userregistration.controller;
 
 import id.kupipancong.userregistration.model.response.WebResponse;
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,5 +43,11 @@ public class ErrorController {
     public ResponseEntity<WebResponse<String>> noResourceFoundException(NoResourceFoundException exception){
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(WebResponse.<String>builder().errors("Not found").build());
+    }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<WebResponse<String>> signatureException(SignatureException exception){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(WebResponse.<String>builder().errors("Token invalid").build());
     }
 }

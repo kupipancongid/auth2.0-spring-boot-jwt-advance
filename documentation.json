@@ -15,7 +15,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "localhost:8080",
       "description": "local development"
     },
     {
@@ -34,7 +34,7 @@
     }
   ],
   "paths": {
-    "/users" : {
+    "/api/users" : {
       "post" : {
         "tags": ["user-registration"],
         "summary": "submit registration form",
@@ -152,7 +152,7 @@
         }
       }
     },
-    "/auth" : {
+    "/api/auth" : {
       "post" : {
         "tags": ["user-login"],
         "summary": "submit login form",
@@ -382,7 +382,7 @@
         }
       }
     },
-    "/auth/current" : {
+    "/api/auth/current" : {
       "get" : {
         "security": [{
           "appsAuth" : []

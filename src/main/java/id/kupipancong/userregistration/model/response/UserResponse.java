@@ -20,12 +20,6 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String email;
-    private String password;
     private UserType userType;
-    @CreationTimestamp
-    @Column(columnDefinition = "timestamp")
-    private LocalDateTime createdAt;
-    @UpdateTimestamp
-    @Column(columnDefinition = "timestamp")
-    private LocalDateTime updatedAt;
+    private LocalDateTime emailVerifiedAt;
 }

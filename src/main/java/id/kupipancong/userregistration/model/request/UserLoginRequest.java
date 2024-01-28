@@ -17,8 +17,9 @@ import org.hibernate.validator.constraints.Length;
 public class UserLoginRequest {
     @NotBlank(message = "username or email must not be blank")
     @Size(min = 5, max = 32)
-    String usernameOrEmail;
+    String email;
     @NotBlank(message = "password must not be blank")
     @Size(min = 6, max = 32)
     String password;
 }
+

@@ -24,6 +24,7 @@ public class SessionToken {
     private String refreshToken;
     private String localAddress;
     private String remoteAddress;
+    private Boolean loggedOut;
     private Boolean refreshTokenUsed;
     @CreationTimestamp
     @Column(columnDefinition = "timestamp")

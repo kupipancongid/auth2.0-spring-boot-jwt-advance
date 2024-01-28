@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 @Component
 public class JwtUtil {
-    private static String SECRET_KEY = "53crEt";
+    private static String SECRET_KEY = "$2y$10$W/Ut78M/QgYzn5kOKjXQE.6wAnbl/0bjIq39po6zLC85cW70AtSuO";
 
     private SecretKeySpec getSecretKeySpec(){
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
