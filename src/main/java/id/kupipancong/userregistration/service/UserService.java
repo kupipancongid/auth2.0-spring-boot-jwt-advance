@@ -133,20 +133,16 @@ public class UserService {
         }
     }
 
+    public Boolean isTokenInvalid(String accessToken){
+        return !jwtUtil.isTokenValid(accessToken);
+    }
+
+    public Boolean isTokenExpired(String accessToken){
+        return jwtUtil.isTokenExpired(accessToken);
+    }
+
     public User getUserByAccessToken(String accessToken){
         try {
-            if (accessToken==null){
-                return null;
-            }
-
-            if(jwtUtil.isTokenExpired(accessToken)){
-                return null;
-            }
-
-            if (!jwtUtil.isTokenValid(accessToken)){
-                return null;
-            }
-
             SessionToken sessionToken = sessionTokenRepository.findSessionTokenByAccessToken(accessToken).orElseThrow();
             Session session = sessionRepository.findById(sessionToken.getSession().getId()).orElseThrow();
             User user = userRepository.findById(session.getUser().getId()).orElseThrow();

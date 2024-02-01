@@ -15,6 +15,7 @@ import id.kupipancong.userregistration.repository.SessionTokenRepository;
 import id.kupipancong.userregistration.repository.UserRepository;
 import id.kupipancong.userregistration.repository.UserVerificationTokenRepository;
 import id.kupipancong.userregistration.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
 class UserAuthenticationControllerTest {
@@ -394,7 +396,7 @@ class UserAuthenticationControllerTest {
     }
 
     @Test
-    void testLokenValidAccessToResourcesValid() throws Exception {
+    void testTokenValidAccessToResourcesValid() throws Exception {
         UserRegisterRequest request = new UserRegisterRequest();
         request.setFirstName("kupi");
         request.setLastName("pancongid");
@@ -409,6 +411,7 @@ class UserAuthenticationControllerTest {
         loginRequest.setPassword("secret");
 
         TokenResponse token = login(loginRequest);
+        log.info(token.getAccessToken());
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-API-ACCESS-TOKEN", token.getAccessToken());
@@ -418,7 +421,6 @@ class UserAuthenticationControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
                 status().isOk()
         ).andDo(
@@ -472,7 +474,6 @@ class UserAuthenticationControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
                 status().isUnauthorized()
         ).andDo(
@@ -484,6 +485,7 @@ class UserAuthenticationControllerTest {
                     SessionToken sessionToken1 = optionalSessionToken1.get();
                     assertNotNull(sessionToken1.getAccessToken());
                     assertEquals(sessionToken1.getAccessToken(), expiredAccessToken);
+                    assertEquals(response.getErrors(), "Expired");
                 }
         );
     }
@@ -511,9 +513,8 @@ class UserAuthenticationControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
-                status().isUnauthorized()
+                status().isBadRequest()
         ).andDo(
                 result -> {
                     WebResponse<UserResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
@@ -547,7 +548,7 @@ class UserAuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
-                status().isUnauthorized()
+                status().isBadRequest()
         ).andDo(
                 result -> {
                     WebResponse<UserResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
@@ -597,7 +598,6 @@ class UserAuthenticationControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
                 status().isUnauthorized()
         ).andDo(
@@ -609,6 +609,7 @@ class UserAuthenticationControllerTest {
                     SessionToken sessionToken1 = optionalSessionToken1.get();
                     assertNotNull(sessionToken1.getAccessToken());
                     assertEquals(sessionToken1.getAccessToken(), expiredAccessToken);
+                    assertEquals(response.getErrors(), "Expired");
                 }
         );
     }
@@ -653,7 +654,6 @@ class UserAuthenticationControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))
         ).andExpectAll(
                 status().isUnauthorized()
         ).andDo(

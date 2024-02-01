@@ -73,7 +73,7 @@ public class UserAuthenticationController {
     @DeleteMapping(
             path = "/api/auth"
     )
-    public WebResponse<String> logout(HttpServletRequest request){
+    public WebResponse<String> logout(User user, HttpServletRequest request){
         userService.logout(request);
 
         return WebResponse.<String>builder()

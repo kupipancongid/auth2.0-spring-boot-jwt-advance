@@ -36,6 +36,18 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
         HttpServletRequest servletRequest = (HttpServletRequest) webRequest.getNativeRequest();
         String accessToken = servletRequest.getHeader("X-API-ACCESS-TOKEN");
 
+        if (accessToken==null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (userService.isTokenExpired(accessToken)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Expired");
+        }
+
+        if (userService.isTokenInvalid(accessToken)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
         User user = userService.getUserByAccessToken(accessToken);
 
         if (user == null){
