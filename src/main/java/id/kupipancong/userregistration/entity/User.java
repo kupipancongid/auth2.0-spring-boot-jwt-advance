@@ -28,14 +28,9 @@ public class User {
     @Column(unique = true)
     private String username;
     private String password;
-
     private String referral;
     @Enumerated(EnumType.STRING)
     private UserType userType;
-    @Column(unique = true)
-    private String accessToken;
-    @Column(unique = true)
-    private String refreshToken;
     @Column(columnDefinition = "timestamp")
     private LocalDateTime emailVerifiedAt;
     @CreationTimestamp
