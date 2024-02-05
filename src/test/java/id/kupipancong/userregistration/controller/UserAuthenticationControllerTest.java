@@ -16,6 +16,7 @@ import id.kupipancong.userregistration.repository.UserRepository;
 import id.kupipancong.userregistration.repository.UserVerificationTokenRepository;
 import id.kupipancong.userregistration.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -665,9 +666,8 @@ class UserAuthenticationControllerTest {
         );
     }
 
-    //TODO: testRefreshTokenValidNewAccessTokenGiven
     @Test
-    void testRefreshTokenValid(){
+    void testRefreshTokenValidNewAccessTokenGiven() throws Exception {
         UserRegisterRequest request = new UserRegisterRequest();
         request.setFirstName("kupi");
         request.setLastName("pancongid");
@@ -682,6 +682,102 @@ class UserAuthenticationControllerTest {
         loginRequest.setPassword("secret");
 
         TokenResponse token = login(loginRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-API-REFRESH-TOKEN", token.getRefreshToken());
+
+        mockMvc.perform(
+                post("/api/auth/refresh")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(
+                result -> {
+                    WebResponse<TokenResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+                    });
+
+                    assertNotNull(response.getData().getAccessToken());
+                    assertNotNull(response.getData().getRefreshToken());
+                }
+        );
+    }
+
+    @Test
+    void testRefreshTokenInvalidNewAccessTokenNotGiven() throws Exception {
+        UserRegisterRequest request = new UserRegisterRequest();
+        request.setFirstName("kupi");
+        request.setLastName("pancongid");
+        request.setUsername("kupipancongid");
+        request.setEmail("idkupipancong@gmail.com");
+        request.setPassword("secret");
+        request.setPasswordConfirmation("secret");
+        registerUser(request);
+
+        UserLoginRequest loginRequest = new UserLoginRequest();
+        loginRequest.setEmail("idkupipancong@gmail.com");
+        loginRequest.setPassword("secret");
+
+        TokenResponse token = login(loginRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-API-REFRESH-TOKEN", "wrong-token");
+
+        mockMvc.perform(
+                post("/api/auth/refresh")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isBadRequest()
+        ).andDo(
+                result -> {
+                    WebResponse<TokenResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+                    });
+
+                    assertNotNull(response.getErrors());
+                    assertNull(response.getData());
+                }
+        );
+    }
+
+    @Test
+    void testRefreshTokenExpiredNewAccessTokenNotGiven() throws Exception {
+        UserRegisterRequest request = new UserRegisterRequest();
+        request.setFirstName("kupi");
+        request.setLastName("pancongid");
+        request.setUsername("kupipancongid");
+        request.setEmail("idkupipancong@gmail.com");
+        request.setPassword("secret");
+        request.setPasswordConfirmation("secret");
+        registerUser(request);
+
+        UserLoginRequest loginRequest = new UserLoginRequest();
+        loginRequest.setEmail("idkupipancong@gmail.com");
+        loginRequest.setPassword("secret");
+
+        TokenResponse token = login(loginRequest);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-API-REFRESH-TOKEN", token.getRefreshToken());
+
+        mockMvc.perform(
+                post("/api/auth/refresh")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(
+                result -> {
+                    WebResponse<TokenResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+                    });
+
+                    assertNotNull(response.getData().getAccessToken());
+                    assertNotNull(response.getData().getRefreshToken());
+                }
+        );
 
         Optional<SessionToken> optionalSessionToken = sessionTokenRepository.findSessionTokenByAccessToken(token.getAccessToken());
         SessionToken sessionToken = optionalSessionToken.get();
@@ -698,11 +794,81 @@ class UserAuthenticationControllerTest {
 
         sessionTokenRepository.save(sessionToken);
 
-        String expiredAccessToken = sessionToken.getAccessToken();
+        String expiredRefreshToken = sessionToken.getRefreshToken();
+
+        HttpHeaders headers2 = new HttpHeaders();
+        headers2.add("X-API-REFRESH-TOKEN", expiredRefreshToken);
+
+        mockMvc.perform(
+                post("/api/auth/refresh")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers2)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(
+                result -> {
+                    WebResponse<TokenResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+                    });
+
+                    Optional<SessionToken> optionalSessionToken1 = sessionTokenRepository.findSessionTokenByRefreshToken(expiredRefreshToken);
+                    SessionToken sessionToken1 = optionalSessionToken1.get();
+                    assertNotNull(sessionToken1.getAccessToken());
+                    assertEquals(sessionToken1.getAccessToken(), expiredRefreshToken);
+                    assertEquals(response.getErrors(), "Expired");
+                }
+        );
+    }
+
+    @Test
+    void testLogoutSuccessNewAccessTokenNotGiven() throws Exception {
+        UserRegisterRequest request = new UserRegisterRequest();
+        request.setFirstName("kupi");
+        request.setLastName("pancongid");
+        request.setUsername("kupipancongid");
+        request.setEmail("idkupipancong@gmail.com");
+        request.setPassword("secret");
+        request.setPasswordConfirmation("secret");
+        registerUser(request);
+
+        UserLoginRequest loginRequest = new UserLoginRequest();
+        loginRequest.setEmail("idkupipancong@gmail.com");
+        loginRequest.setPassword("secret");
+
+        TokenResponse token = login(loginRequest);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("X-API-ACCESS-TOKEN", sessionToken.getAccessToken());
+        headers.add("X-API-ACCESS-TOKEN", token.getAccessToken());
+        headers.add("X-API-REFRESH-TOKEN", token.getRefreshToken());
+
+        mockMvc.perform(
+                delete("/api/auth")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest))
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(
+                result -> {
+                    WebResponse<String> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<String>>() {
+                    });
+                }
+        );
+
+        mockMvc.perform(
+                post("/api/auth/refresh")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(
+                result -> {
+                    WebResponse<UserResponse> response= objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
+                    });
+                    assertEquals("Unauthorized", response.getErrors());
+                }
+        );
     }
-    //TODO: testRefreshTokenInvalid
-    //TODO: testRefreshTokenExpired
 }
