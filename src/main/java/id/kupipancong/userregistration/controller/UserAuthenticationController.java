@@ -45,6 +45,18 @@ public class UserAuthenticationController {
                 .build();
     }
 
+    @PostMapping(
+            path = "/api/auth/refresh",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<TokenResponse> refresh(HttpServletRequest request){
+        TokenResponse tokenResponse = userService.refresh(request);
+
+        return WebResponse.<TokenResponse>builder()
+                .data(tokenResponse)
+                .build();
+    }
+
     @GetMapping(
             path = "/api/auth",
             produces = MediaType.APPLICATION_JSON_VALUE

@@ -666,6 +666,43 @@ class UserAuthenticationControllerTest {
     }
 
     //TODO: testRefreshTokenValidNewAccessTokenGiven
+    @Test
+    void testRefreshTokenValid(){
+        UserRegisterRequest request = new UserRegisterRequest();
+        request.setFirstName("kupi");
+        request.setLastName("pancongid");
+        request.setUsername("kupipancongid");
+        request.setEmail("idkupipancong@gmail.com");
+        request.setPassword("secret");
+        request.setPasswordConfirmation("secret");
+        registerUser(request);
+
+        UserLoginRequest loginRequest = new UserLoginRequest();
+        loginRequest.setEmail("idkupipancong@gmail.com");
+        loginRequest.setPassword("secret");
+
+        TokenResponse token = login(loginRequest);
+
+        Optional<SessionToken> optionalSessionToken = sessionTokenRepository.findSessionTokenByAccessToken(token.getAccessToken());
+        SessionToken sessionToken = optionalSessionToken.get();
+
+        User user = sessionToken.getUser();
+
+        String sessionTokenId = UUID.randomUUID().toString();
+        Date accessTokenIssuedAt = new Date(System.currentTimeMillis());
+        Date accessTokenExpiredAt = new Date(System.currentTimeMillis() - 2L);
+        Date refreshTokenIssuedAt = accessTokenIssuedAt;
+        Date refreshTokenExpiredAt = new Date(System.currentTimeMillis() - 1L);
+
+        sessionToken = userService.generateSessionToken(sessionTokenId, sessionToken.getSession(), user, accessTokenIssuedAt, accessTokenExpiredAt, refreshTokenIssuedAt, refreshTokenExpiredAt);
+
+        sessionTokenRepository.save(sessionToken);
+
+        String expiredAccessToken = sessionToken.getAccessToken();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-API-ACCESS-TOKEN", sessionToken.getAccessToken());
+    }
     //TODO: testRefreshTokenInvalid
     //TODO: testRefreshTokenExpired
 }

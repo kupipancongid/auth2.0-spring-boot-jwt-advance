@@ -17,7 +17,6 @@ import id.kupipancong.userregistration.repository.UserVerificationTokenRepositor
 import id.kupipancong.userregistration.security.BCrypt;
 import id.kupipancong.userregistration.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,9 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
 @Service
 public class UserService {
     @Autowired
@@ -133,6 +132,80 @@ public class UserService {
         }
     }
 
+    @Transactional
+    public TokenResponse refresh(HttpServletRequest request){
+        String refreshToken = request.getHeader("X-API-REFRESH-TOKEN");
+
+        if (refreshToken==null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (isTokenExpired(refreshToken)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Expired");
+        }
+
+        if (isTokenInvalid(refreshToken)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Optional<SessionToken> optionalSessionToken = sessionTokenRepository.findSessionTokenByRefreshToken(refreshToken);
+
+        if (optionalSessionToken.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        SessionToken sessionToken = optionalSessionToken.get();
+
+        if (sessionToken == null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (sessionToken.getRefreshTokenUsed()){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (sessionToken.getLoggedOut()){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Optional<Session> optionalSession = sessionRepository.findById(sessionToken.getSession().getId());
+
+        if (optionalSession.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        Session session = optionalSession.get();
+
+        if (session == null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        if (session.getLoggedOutAt() != null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        User user = userRepository.findById(session.getUser().getId()).orElseThrow();
+
+        if (user == null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+
+        sessionToken.setRefreshTokenUsed(true);
+        sessionTokenRepository.save(sessionToken);
+
+        String sessionTokenId = UUID.randomUUID().toString();
+        Date accessTokenIssuedAt = new Date(System.currentTimeMillis());
+        Date accessTokenExpiredAt = new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRED_TIMEMILIS);
+        Date refreshTokenIssuedAt = accessTokenIssuedAt;
+        Date refreshTokenExpiredAt = new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRED_TIMEMILIS);
+        SessionToken refreshedSessionToken = generateSessionToken(sessionTokenId, session, user, accessTokenIssuedAt, accessTokenExpiredAt, refreshTokenIssuedAt, refreshTokenExpiredAt);
+
+        return TokenResponse.builder()
+                .accessToken(refreshedSessionToken.getAccessToken())
+                .refreshToken(refreshedSessionToken.getRefreshToken())
+                .build();
+    }
+
     public Boolean isTokenInvalid(String accessToken){
         return !jwtUtil.isTokenValid(accessToken);
     }
@@ -181,11 +254,13 @@ public class UserService {
         sessionToken.setAccessToken(accessToken);
         sessionToken.setRefreshToken(refreshToken);
         sessionToken.setRefreshTokenUsed(Boolean.FALSE);
+        sessionToken.setLoggedOut(Boolean.FALSE);
         sessionTokenRepository.save(sessionToken);
 
         return sessionToken;
     }
 
+    @Transactional
     public void logout(HttpServletRequest request){
         String accessToken = request.getHeader("X-API-ACCESS-TOKEN");
 
@@ -199,12 +274,11 @@ public class UserService {
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
         );
 
-        sessionToken.setLoggedOut(true);
-        sessionTokenRepository.save(sessionToken);
-
         Session session = sessionRepository.findById(sessionToken.getSession().getId()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
         );
+
+        sessionTokenRepository.updateLoggedOutTrueBySession(session);
 
         session.setLoggedOutAt(LocalDateTime.now());
 
